@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Mi Tiempo</title>
+<!-- Añadimos Chart.js para los gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     body { 
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
@@ -24,10 +26,33 @@
         padding: 24px; 
         box-sizing: border-box; 
     }
-    h1 { font-size: 22px; color: #1c1e21; margin-bottom: 8px; }
+    h1 { font-size: 22px; color: #1c1e21; margin-bottom: 8px; margin-top: 0; }
     p.subtitle { color: #65676b; margin-top: 0; margin-bottom: 24px; font-size: 14px; }
     h2 { font-size: 18px; color: #1c1e21; margin-top: 32px; border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; }
     
+    /* Pestañas de navegación */
+    .nav-tabs {
+        display: flex;
+        background: #e4e6eb;
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 24px;
+    }
+    .nav-tabs button {
+        flex: 1;
+        background: transparent;
+        color: #65676b;
+        box-shadow: none;
+        padding: 12px;
+        font-size: 15px;
+        margin: 0;
+    }
+    .nav-tabs button.active {
+        background: white;
+        color: #1c1e21;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
     input { 
         width: 100%; 
         padding: 16px; 
@@ -76,30 +101,82 @@
     .activity-name { font-weight: 600; font-size: 16px; }
     .activity-time { color: #0866ff; font-weight: 700; font-size: 16px; }
     .empty-state { text-align: center; color: #65676b; padding: 20px 0; font-size: 14px; }
+
+    .chart-container {
+        margin-top: 24px;
+        background: white;
+        padding: 16px;
+        border: 2px solid #f0f2f5;
+        border-radius: 12px;
+        position: relative;
+    }
 </style>
 </head>
 <body>
 
 <div class="app-container">
-    <h1>¿Qué estás haciendo?</h1>
-    <p class="subtitle">Escribe la asignatura, libro o ejercicio.</p>
     
-    <input type="text" id="activity" placeholder="Ej. Matemáticas, Gimnasio..." list="recent-activities">
-    <datalist id="recent-activities"></datalist>
+    <!-- Navegación -->
+    <div class="nav-tabs">
+        <button id="btn-tab-timer" class="active" onclick="showTab('timer')">Temporizador</button>
+        <button id="btn-tab-stats" onclick="showTab('stats')">Estadísticas</button>
+    </div>
 
-    <div class="timer" id="display">00:00:00</div>
+    <!-- PESTAÑA: TEMPORIZADOR -->
+    <div id="tab-timer">
+        <h1>¿Qué estás haciendo?</h1>
+        <p class="subtitle">Escribe la asignatura, libro o ejercicio.</p>
+        
+        <input type="text" id="activity" placeholder="Ej. Matemáticas, Gimnasio..." list="recent-activities">
+        <datalist id="recent-activities"></datalist>
 
-    <button id="start-btn" onclick="startTimer()">Empezar</button>
-    <button id="stop-btn" onclick="stopTimer()">Terminar y Guardar</button>
+        <div class="timer" id="display">00:00:00</div>
 
-    <h2>Resumen de Hoy</h2>
-    <div id="history"></div>
+        <button id="start-btn" onclick="startTimer()">Empezar</button>
+        <button id="stop-btn" onclick="stopTimer()">Terminar y Guardar</button>
+
+        <h2>Resumen de Hoy</h2>
+        <div id="history"></div>
+    </div>
+
+    <!-- PESTAÑA: ESTADÍSTICAS -->
+    <div id="tab-stats" style="display: none;">
+        <h1>Tus Estadísticas</h1>
+        <p class="subtitle">Analiza cómo inviertes tu tiempo.</p>
+
+        <h2>Reparto Histórico (Total)</h2>
+        <div class="chart-container">
+            <canvas id="pieChart"></canvas>
+        </div>
+
+        <h2>Últimos 7 días</h2>
+        <div class="chart-container">
+            <canvas id="barChart"></canvas>
+        </div>
+    </div>
+
 </div>
 
 <script>
     let startTime;
     let timerInterval;
+    let pieChartInstance = null;
+    let barChartInstance = null;
 
+    // --- LÓGICA DE PESTAÑAS ---
+    function showTab(tabName) {
+        document.getElementById('tab-timer').style.display = tabName === 'timer' ? 'block' : 'none';
+        document.getElementById('tab-stats').style.display = tabName === 'stats' ? 'block' : 'none';
+        
+        document.getElementById('btn-tab-timer').classList.toggle('active', tabName === 'timer');
+        document.getElementById('btn-tab-stats').classList.toggle('active', tabName === 'stats');
+
+        if (tabName === 'stats') {
+            updateCharts();
+        }
+    }
+
+    // --- LÓGICA DEL TEMPORIZADOR ---
     function formatTime(ms) {
         let totalSeconds = Math.floor(ms / 1000);
         let hours = Math.floor(totalSeconds / 3600);
@@ -143,7 +220,6 @@
     }
 
     function getTodayKey() {
-        // Formato AAAA-MM-DD según la zona horaria local
         const now = new Date();
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     }
@@ -158,11 +234,10 @@
         data[today][activity] += durationMs;
         localStorage.setItem('trackerData', JSON.stringify(data));
         
-        // Guardar para autocompletar en el futuro
         let recents = JSON.parse(localStorage.getItem('recentActivities')) || [];
         if (!recents.includes(activity)) {
             recents.unshift(activity);
-            if (recents.length > 10) recents.pop(); // Mantener solo los últimos 10
+            if (recents.length > 10) recents.pop();
             localStorage.setItem('recentActivities', JSON.stringify(recents));
         }
         updateDatalist();
@@ -187,15 +262,8 @@
             const hours = Math.floor(minutes / 60);
             const remainingMins = minutes % 60;
             
-            let timeText = '';
-            if (hours > 0) timeText += `${hours}h `;
-            timeText += `${remainingMins}m`;
-            
-            // Si duró menos de un minuto, mostrar segundos
-            if (hours === 0 && remainingMins === 0) {
-                const seconds = Math.floor(duration / 1000);
-                timeText = `${seconds}s`;
-            }
+            let timeText = hours > 0 ? `${hours}h ${remainingMins}m` : `${remainingMins}m`;
+            if (hours === 0 && remainingMins === 0) timeText = `${Math.floor(duration / 1000)}s`;
 
             div.innerHTML = `<span class="activity-name">${activity}</span><span class="activity-time">${timeText}</span>`;
             historyContainer.appendChild(div);
@@ -213,7 +281,102 @@
         });
     }
 
-    // Inicializar la app al cargar
+    // --- LÓGICA DE GRÁFICOS (Chart.js) ---
+    function formatTooltip(context) {
+        let val = context.raw; // horas en formato decimal
+        let h = Math.floor(val);
+        let m = Math.round((val - h) * 60);
+        if (h === 0) return `${m} min`;
+        return `${h}h ${m}m`;
+    }
+
+    function updateCharts() {
+        let data = JSON.parse(localStorage.getItem('trackerData')) || {};
+        
+        // 1. Preparar datos para el gráfico circular (Totales históricos)
+        let activityTotals = {};
+        let hasData = false;
+        for (let date in data) {
+            for (let act in data[date]) {
+                if (!activityTotals[act]) activityTotals[act] = 0;
+                activityTotals[act] += data[date][act];
+                hasData = true;
+            }
+        }
+        
+        let pieLabels = Object.keys(activityTotals);
+        let pieData = Object.values(activityTotals).map(ms => ms / 3600000); // Convertir a horas
+
+        // Colores bonitos para las gráficas
+        const colors = ['#0866ff', '#00a400', '#f5c33b', '#e41e3f', '#8a2be2', '#ff8c00', '#00ced1', '#ff1493'];
+
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        if (pieChartInstance) pieChartInstance.destroy();
+        
+        if (!hasData) {
+            // Si no hay datos, mostramos un gráfico gris vacío
+            pieChartInstance = new Chart(pieCtx, {
+                type: 'pie',
+                data: { labels: ['Sin datos'], datasets: [{ data: [1], backgroundColor: ['#e4e6eb'] }] }
+            });
+        } else {
+            pieChartInstance = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: pieLabels,
+                    datasets: [{ data: pieData, backgroundColor: colors, borderWidth: 0 }]
+                },
+                options: {
+                    plugins: { tooltip: { callbacks: { label: function(c) { return ' ' + c.label + ': ' + formatTooltip(c); } } } }
+                }
+            });
+        }
+
+        // 2. Preparar datos para el gráfico de barras (Últimos 7 días)
+        let barLabels = [];
+        let barData = [];
+        
+        for (let i = 6; i >= 0; i--) {
+            let d = new Date();
+            d.setDate(d.getDate() - i);
+            let dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            let displayDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+            
+            barLabels.push(displayDate);
+            
+            let dayTotalMs = 0;
+            if (data[dateKey]) {
+                for (let act in data[dateKey]) {
+                    dayTotalMs += data[dateKey][act];
+                }
+            }
+            barData.push(dayTotalMs / 3600000); // Convertir a horas
+        }
+
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        if (barChartInstance) barChartInstance.destroy();
+        barChartInstance = new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: barLabels,
+                datasets: [{
+                    label: 'Horas Totales',
+                    data: barData,
+                    backgroundColor: '#0866ff',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true, title: { display: false } } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: function(c) { return ' ' + formatTooltip(c); } } }
+                }
+            }
+        });
+    }
+
+    // Inicializar al cargar
     updateHistory();
     updateDatalist();
 </script>
