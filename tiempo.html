@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Mi Tiempo</title>
+<style>
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        background-color: #f0f2f5; 
+        color: #1c1e21; 
+        margin: 0; 
+        padding: 0; 
+        display: flex; 
+        justify-content: center; 
+    }
+    .app-container { 
+        width: 100%; 
+        max-width: 500px; 
+        background: white; 
+        min-height: 100vh; 
+        padding: 24px; 
+        box-sizing: border-box; 
+    }
+    h1 { font-size: 22px; color: #1c1e21; margin-bottom: 8px; }
+    p.subtitle { color: #65676b; margin-top: 0; margin-bottom: 24px; font-size: 14px; }
+    h2 { font-size: 18px; color: #1c1e21; margin-top: 32px; border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; }
+    
+    input { 
+        width: 100%; 
+        padding: 16px; 
+        border: 2px solid #e4e6eb; 
+        border-radius: 12px; 
+        font-size: 16px; 
+        box-sizing: border-box; 
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    input:focus { border-color: #0866ff; }
+    
+    .timer { 
+        font-size: 56px; 
+        text-align: center; 
+        margin: 32px 0; 
+        font-variant-numeric: tabular-nums; 
+        font-weight: 700; 
+        color: #1c1e21; 
+    }
+    
+    button { 
+        width: 100%; 
+        padding: 18px; 
+        font-size: 18px; 
+        border: none; 
+        border-radius: 12px; 
+        cursor: pointer; 
+        color: white; 
+        font-weight: 600; 
+        transition: transform 0.1s; 
+    }
+    button:active { transform: scale(0.98); }
+    #start-btn { background-color: #0866ff; box-shadow: 0 4px 12px rgba(8, 102, 255, 0.3); }
+    #stop-btn { background-color: #e41e3f; box-shadow: 0 4px 12px rgba(228, 30, 63, 0.3); display: none; }
+    
+    .history-card { 
+        background: #f0f2f5; 
+        padding: 16px; 
+        border-radius: 12px; 
+        margin-bottom: 12px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+    }
+    .activity-name { font-weight: 600; font-size: 16px; }
+    .activity-time { color: #0866ff; font-weight: 700; font-size: 16px; }
+    .empty-state { text-align: center; color: #65676b; padding: 20px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>¿Qué estás haciendo?</h1>
+    <p class="subtitle">Escribe la asignatura, libro o ejercicio.</p>
+    
+    <input type="text" id="activity" placeholder="Ej. Matemáticas, Gimnasio..." list="recent-activities">
+    <datalist id="recent-activities"></datalist>
+
+    <div class="timer" id="display">00:00:00</div>
+
+    <button id="start-btn" onclick="startTimer()">Empezar</button>
+    <button id="stop-btn" onclick="stopTimer()">Terminar y Guardar</button>
+
+    <h2>Resumen de Hoy</h2>
+    <div id="history"></div>
+</div>
+
+<script>
+    let startTime;
+    let timerInterval;
+
+    function formatTime(ms) {
+        let totalSeconds = Math.floor(ms / 1000);
+        let hours = Math.floor(totalSeconds / 3600);
+        let minutes = Math.floor((totalSeconds % 3600) / 60);
+        let seconds = totalSeconds % 60;
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+        const activityInput = document.getElementById('activity');
+        if (!activityInput.value.trim()) {
+            alert("Por favor, escribe qué vas a hacer primero.");
+            return;
+        }
+        
+        startTime = Date.now();
+        activityInput.disabled = true;
+        
+        document.getElementById('start-btn').style.display = 'none';
+        document.getElementById('stop-btn').style.display = 'block';
+
+        timerInterval = setInterval(() => {
+            document.getElementById('display').innerText = formatTime(Date.now() - startTime);
+        }, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        
+        const durationMs = Date.now() - startTime;
+        const activity = document.getElementById('activity').value.trim();
+        
+        saveData(activity, durationMs);
+        updateHistory();
+        
+        document.getElementById('activity').disabled = false;
+        document.getElementById('activity').value = '';
+        document.getElementById('display').innerText = "00:00:00";
+        document.getElementById('start-btn').style.display = 'block';
+        document.getElementById('stop-btn').style.display = 'none';
+    }
+
+    function getTodayKey() {
+        // Formato AAAA-MM-DD según la zona horaria local
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    function saveData(activity, durationMs) {
+        const today = getTodayKey();
+        let data = JSON.parse(localStorage.getItem('trackerData')) || {};
+        
+        if (!data[today]) data[today] = {};
+        if (!data[today][activity]) data[today][activity] = 0;
+        
+        data[today][activity] += durationMs;
+        localStorage.setItem('trackerData', JSON.stringify(data));
+        
+        // Guardar para autocompletar en el futuro
+        let recents = JSON.parse(localStorage.getItem('recentActivities')) || [];
+        if (!recents.includes(activity)) {
+            recents.unshift(activity);
+            if (recents.length > 10) recents.pop(); // Mantener solo los últimos 10
+            localStorage.setItem('recentActivities', JSON.stringify(recents));
+        }
+        updateDatalist();
+    }
+
+    function updateHistory() {
+        const today = getTodayKey();
+        let data = JSON.parse(localStorage.getItem('trackerData')) || {};
+        const historyContainer = document.getElementById('history');
+        historyContainer.innerHTML = '';
+        
+        if (!data[today] || Object.keys(data[today]).length === 0) {
+            historyContainer.innerHTML = '<div class="empty-state">Aún no hay registros hoy.<br>¡Empieza una actividad!</div>';
+            return;
+        }
+
+        for (const [activity, duration] of Object.entries(data[today])) {
+            const div = document.createElement('div');
+            div.className = 'history-card';
+            
+            const minutes = Math.floor(duration / 60000);
+            const hours = Math.floor(minutes / 60);
+            const remainingMins = minutes % 60;
+            
+            let timeText = '';
+            if (hours > 0) timeText += `${hours}h `;
+            timeText += `${remainingMins}m`;
+            
+            // Si duró menos de un minuto, mostrar segundos
+            if (hours === 0 && remainingMins === 0) {
+                const seconds = Math.floor(duration / 1000);
+                timeText = `${seconds}s`;
+            }
+
+            div.innerHTML = `<span class="activity-name">${activity}</span><span class="activity-time">${timeText}</span>`;
+            historyContainer.appendChild(div);
+        }
+    }
+
+    function updateDatalist() {
+        let recents = JSON.parse(localStorage.getItem('recentActivities')) || [];
+        const datalist = document.getElementById('recent-activities');
+        datalist.innerHTML = '';
+        recents.forEach(act => {
+            const option = document.createElement('option');
+            option.value = act;
+            datalist.appendChild(option);
+        });
+    }
+
+    // Inicializar la app al cargar
+    updateHistory();
+    updateDatalist();
+</script>
+</body>
+</html>
