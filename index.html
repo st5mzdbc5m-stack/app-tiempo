@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Mi Tiempo</title>
-<!-- Añadimos Chart.js para los gráficos -->
+<!-- Chart.js para gráficos -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     body { 
@@ -25,10 +25,11 @@
         min-height: 100vh; 
         padding: 24px; 
         box-sizing: border-box; 
+        padding-bottom: 40px;
     }
-    h1 { font-size: 22px; color: #1c1e21; margin-bottom: 8px; margin-top: 0; }
-    p.subtitle { color: #65676b; margin-top: 0; margin-bottom: 24px; font-size: 14px; }
-    h2 { font-size: 18px; color: #1c1e21; margin-top: 32px; border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; }
+    h1 { font-size: 22px; color: #1c1e21; margin-bottom: 4px; margin-top: 0; }
+    p.subtitle { color: #65676b; margin-top: 0; margin-bottom: 20px; font-size: 14px; }
+    h2 { font-size: 17px; color: #1c1e21; margin-top: 24px; border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     
     /* Pestañas de navegación */
     .nav-tabs {
@@ -36,16 +37,19 @@
         background: #e4e6eb;
         border-radius: 12px;
         padding: 4px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
     }
     .nav-tabs button {
         flex: 1;
         background: transparent;
         color: #65676b;
-        box-shadow: none;
-        padding: 12px;
-        font-size: 15px;
-        margin: 0;
+        border: none;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
     }
     .nav-tabs button.active {
         background: white;
@@ -53,62 +57,106 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    input { 
+    /* Inputs y controles */
+    label { font-size: 13px; font-weight: 600; color: #65676b; display: block; margin-bottom: 6px; }
+    input[type="text"], input[type="date"], select { 
         width: 100%; 
-        padding: 16px; 
+        padding: 14px; 
         border: 2px solid #e4e6eb; 
         border-radius: 12px; 
-        font-size: 16px; 
+        font-size: 15px; 
         box-sizing: border-box; 
         outline: none;
         transition: border-color 0.2s;
+        background: #fff;
+        color: #1c1e21;
     }
-    input:focus { border-color: #0866ff; }
+    input:focus, select:focus { border-color: #0866ff; }
     
     .timer { 
-        font-size: 56px; 
+        font-size: 52px; 
         text-align: center; 
-        margin: 32px 0; 
+        margin: 24px 0; 
         font-variant-numeric: tabular-nums; 
         font-weight: 700; 
         color: #1c1e21; 
     }
     
-    button { 
+    button.action-btn { 
         width: 100%; 
-        padding: 18px; 
-        font-size: 18px; 
+        padding: 16px; 
+        font-size: 17px; 
         border: none; 
         border-radius: 12px; 
         cursor: pointer; 
         color: white; 
         font-weight: 600; 
-        transition: transform 0.1s; 
+        transition: transform 0.1s, opacity 0.2s; 
     }
-    button:active { transform: scale(0.98); }
+    button.action-btn:active { transform: scale(0.98); }
     #start-btn { background-color: #0866ff; box-shadow: 0 4px 12px rgba(8, 102, 255, 0.3); }
     #stop-btn { background-color: #e41e3f; box-shadow: 0 4px 12px rgba(228, 30, 63, 0.3); display: none; }
     
+    /* Cards de Historial */
     .history-card { 
         background: #f0f2f5; 
-        padding: 16px; 
+        padding: 14px 16px; 
         border-radius: 12px; 
-        margin-bottom: 12px; 
+        margin-bottom: 8px; 
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
     }
-    .activity-name { font-weight: 600; font-size: 16px; }
-    .activity-time { color: #0866ff; font-weight: 700; font-size: 16px; }
-    .empty-state { text-align: center; color: #65676b; padding: 20px 0; font-size: 14px; }
+    .activity-name { font-weight: 600; font-size: 15px; }
+    .activity-time { color: #0866ff; font-weight: 700; font-size: 15px; }
+    .empty-state { text-align: center; color: #65676b; padding: 24px 0; font-size: 14px; }
+
+    /* Tarjetas de Resumen en Estadísticas */
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 16px;
+    }
+    .stat-card {
+        background: #f0f2f5;
+        padding: 12px 8px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    .stat-card .val { font-size: 16px; font-weight: 700; color: #0866ff; margin-top: 4px; }
+    .stat-card .lbl { font-size: 11px; color: #65676b; font-weight: 600; text-transform: uppercase; }
 
     .chart-container {
-        margin-top: 24px;
+        margin-top: 16px;
         background: white;
-        padding: 16px;
+        padding: 12px;
         border: 2px solid #f0f2f5;
         border-radius: 12px;
         position: relative;
+    }
+
+    .date-filter-box {
+        background: #f8f9fa;
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        border: 1px solid #e4e6eb;
+    }
+
+    .custom-alert {
+        display: none;
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1c1e21;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 20px;
+        font-size: 14px;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
 </style>
 </head>
@@ -116,40 +164,79 @@
 
 <div class="app-container">
     
+    <!-- Toast de Notificación -->
+    <div id="toast" class="custom-alert"></div>
+
     <!-- Navegación -->
     <div class="nav-tabs">
         <button id="btn-tab-timer" class="active" onclick="showTab('timer')">Temporizador</button>
         <button id="btn-tab-stats" onclick="showTab('stats')">Estadísticas</button>
     </div>
 
-    <!-- PESTAÑA: TEMPORIZADOR -->
+    <!-- PESTAÑA 1: TEMPORIZADOR Y RESUMEN DIARIO -->
     <div id="tab-timer">
         <h1>¿Qué estás haciendo?</h1>
-        <p class="subtitle">Escribe la asignatura, libro o ejercicio.</p>
+        <p class="subtitle">Registra tu estudio, lectura o ejercicio.</p>
         
-        <input type="text" id="activity" placeholder="Ej. Matemáticas, Gimnasio..." list="recent-activities">
+        <input type="text" id="activity" placeholder="Ej. Matemáticas, Lectura, Gimnasio..." list="recent-activities">
         <datalist id="recent-activities"></datalist>
 
         <div class="timer" id="display">00:00:00</div>
 
-        <button id="start-btn" onclick="startTimer()">Empezar</button>
-        <button id="stop-btn" onclick="stopTimer()">Terminar y Guardar</button>
+        <button id="start-btn" class="action-btn" onclick="startTimer()">Empezar</button>
+        <button id="stop-btn" class="action-btn" onclick="stopTimer()">Terminar y Guardar</button>
 
-        <h2>Resumen de Hoy</h2>
+        <h2>
+            <span>Resumen del Día</span>
+            <input type="date" id="history-date-picker" style="width: auto; padding: 6px 10px; font-size: 13px;" onchange="updateHistory()">
+        </h2>
+        
         <div id="history"></div>
     </div>
 
-    <!-- PESTAÑA: ESTADÍSTICAS -->
+    <!-- PESTAÑA 2: ESTADÍSTICAS (SEMANAL / MENSUAL / HISTÓRICO) -->
     <div id="tab-stats" style="display: none;">
-        <h1>Tus Estadísticas</h1>
-        <p class="subtitle">Analiza cómo inviertes tu tiempo.</p>
+        <h1>Estadísticas</h1>
+        <p class="subtitle">Analiza el tiempo dedicado a tus actividades.</p>
 
-        <h2>Reparto Histórico (Total)</h2>
+        <!-- Selector de Período -->
+        <div class="date-filter-box">
+            <label for="stats-period">Rango de tiempo:</label>
+            <select id="stats-period" onchange="onPeriodChange()">
+                <option value="7days">Últimos 7 días</option>
+                <option value="30days">Últimos 30 días</option>
+                <option value="month">Por Mes Específico</option>
+                <option value="all">Todo el Histórico</option>
+            </select>
+
+            <div id="month-select-container" style="display: none; margin-top: 10px;">
+                <label for="stats-month-picker">Selecciona el Mes:</label>
+                <input type="month" id="stats-month-picker" onchange="updateCharts()">
+            </div>
+        </div>
+
+        <!-- Tarjetas de Resumen Rápido -->
+        <div class="stats-summary">
+            <div class="stat-card">
+                <div class="lbl">Total</div>
+                <div class="val" id="stat-total-time">0h</div>
+            </div>
+            <div class="stat-card">
+                <div class="lbl">Promedio/Día</div>
+                <div class="val" id="stat-avg-time">0h</div>
+            </div>
+            <div class="stat-card">
+                <div class="lbl">Top Actividad</div>
+                <div class="val" id="stat-top-activity" style="font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">-</div>
+            </div>
+        </div>
+
+        <h2>Reparto por Actividad</h2>
         <div class="chart-container">
             <canvas id="pieChart"></canvas>
         </div>
 
-        <h2>Últimos 7 días</h2>
+        <h2>Evolución del Tiempo</h2>
         <div class="chart-container">
             <canvas id="barChart"></canvas>
         </div>
@@ -162,6 +249,27 @@
     let timerInterval;
     let pieChartInstance = null;
     let barChartInstance = null;
+
+    // --- CARGA INICIAL ---
+    window.onload = function() {
+        // Establecer fecha de hoy por defecto en el selector de historial
+        document.getElementById('history-date-picker').value = getTodayKey();
+        
+        // Establecer mes actual en el selector de estadísticas
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        document.getElementById('stats-month-picker').value = currentMonth;
+
+        updateHistory();
+        updateDatalist();
+    };
+
+    function showAlert(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    }
 
     // --- LÓGICA DE PESTAÑAS ---
     function showTab(tabName) {
@@ -188,7 +296,7 @@
     function startTimer() {
         const activityInput = document.getElementById('activity');
         if (!activityInput.value.trim()) {
-            alert("Por favor, escribe qué vas a hacer primero.");
+            showAlert("Escribe qué vas a hacer primero.");
             return;
         }
         
@@ -210,6 +318,9 @@
         const activity = document.getElementById('activity').value.trim();
         
         saveData(activity, durationMs);
+        
+        // Al terminar, nos aseguramos de que el visor del historial muestre el día de hoy
+        document.getElementById('history-date-picker').value = getTodayKey();
         updateHistory();
         
         document.getElementById('activity').disabled = false;
@@ -217,13 +328,20 @@
         document.getElementById('display').innerText = "00:00:00";
         document.getElementById('start-btn').style.display = 'block';
         document.getElementById('stop-btn').style.display = 'none';
+
+        showAlert("¡Sesión guardada con éxito!");
     }
 
     function getTodayKey() {
         const now = new Date();
-        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        return formatDateKey(now);
     }
 
+    function formatDateKey(dateObj) {
+        return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    }
+
+    // --- GUARDADO DE DATOS (SIN LÍMITE DE FECHAS NI DE ACTIVIDADES) ---
     function saveData(activity, durationMs) {
         const today = getTodayKey();
         let data = JSON.parse(localStorage.getItem('trackerData')) || {};
@@ -234,27 +352,28 @@
         data[today][activity] += durationMs;
         localStorage.setItem('trackerData', JSON.stringify(data));
         
-        let recents = JSON.parse(localStorage.getItem('recentActivities')) || [];
-        if (!recents.includes(activity)) {
-            recents.unshift(activity);
-            if (recents.length > 10) recents.pop();
-            localStorage.setItem('recentActivities', JSON.stringify(recents));
+        // Colección de todas las actividades únicas jamás ingresadas para autocompletar
+        let allActivities = JSON.parse(localStorage.getItem('allActivitiesList')) || [];
+        if (!allActivities.includes(activity)) {
+            allActivities.push(activity);
+            allActivities.sort();
+            localStorage.setItem('allActivitiesList', JSON.stringify(allActivities));
         }
         updateDatalist();
     }
 
     function updateHistory() {
-        const today = getTodayKey();
+        const selectedDate = document.getElementById('history-date-picker').value || getTodayKey();
         let data = JSON.parse(localStorage.getItem('trackerData')) || {};
         const historyContainer = document.getElementById('history');
         historyContainer.innerHTML = '';
         
-        if (!data[today] || Object.keys(data[today]).length === 0) {
-            historyContainer.innerHTML = '<div class="empty-state">Aún no hay registros hoy.<br>¡Empieza una actividad!</div>';
+        if (!data[selectedDate] || Object.keys(data[selectedDate]).length === 0) {
+            historyContainer.innerHTML = '<div class="empty-state">No hay registros para este día.</div>';
             return;
         }
 
-        for (const [activity, duration] of Object.entries(data[today])) {
+        for (const [activity, duration] of Object.entries(data[selectedDate])) {
             const div = document.createElement('div');
             div.className = 'history-card';
             
@@ -265,25 +384,46 @@
             let timeText = hours > 0 ? `${hours}h ${remainingMins}m` : `${remainingMins}m`;
             if (hours === 0 && remainingMins === 0) timeText = `${Math.floor(duration / 1000)}s`;
 
-            div.innerHTML = `<span class="activity-name">${activity}</span><span class="activity-time">${timeText}</span>`;
+            div.innerHTML = `<span class="activity-name">${escapeHtml(activity)}</span><span class="activity-time">${timeText}</span>`;
             historyContainer.appendChild(div);
         }
     }
 
     function updateDatalist() {
-        let recents = JSON.parse(localStorage.getItem('recentActivities')) || [];
+        let allActivities = JSON.parse(localStorage.getItem('allActivitiesList')) || [];
+        
+        // Compatibilidad previa: Si no existe aún allActivitiesList, extraer del historial global
+        if (allActivities.length === 0) {
+            let data = JSON.parse(localStorage.getItem('trackerData')) || {};
+            let set = new Set();
+            for (let d in data) {
+                for (let act in data[d]) set.add(act);
+            }
+            allActivities = Array.from(set).sort();
+            if (allActivities.length > 0) {
+                localStorage.setItem('allActivitiesList', JSON.stringify(allActivities));
+            }
+        }
+
         const datalist = document.getElementById('recent-activities');
         datalist.innerHTML = '';
-        recents.forEach(act => {
+        allActivities.forEach(act => {
             const option = document.createElement('option');
             option.value = act;
             datalist.appendChild(option);
         });
     }
 
-    // --- LÓGICA DE GRÁFICOS (Chart.js) ---
+    // --- LÓGICA DE ESTADÍSTICAS Y GRÁFICOS ---
+    function onPeriodChange() {
+        const period = document.getElementById('stats-period').value;
+        const monthContainer = document.getElementById('month-select-container');
+        monthContainer.style.display = period === 'month' ? 'block' : 'none';
+        updateCharts();
+    }
+
     function formatTooltip(context) {
-        let val = context.raw; // horas en formato decimal
+        let val = context.raw; // Horas en decimal
         let h = Math.floor(val);
         let m = Math.round((val - h) * 60);
         if (h === 0) return `${m} min`;
@@ -292,29 +432,85 @@
 
     function updateCharts() {
         let data = JSON.parse(localStorage.getItem('trackerData')) || {};
+        const period = document.getElementById('stats-period').value;
         
-        // 1. Preparar datos para el gráfico circular (Totales históricos)
+        let filteredDates = [];
+        const now = new Date();
+
+        // 1. Filtrar fechas según el rango seleccionado
+        if (period === '7days') {
+            for (let i = 6; i >= 0; i--) {
+                let d = new Date();
+                d.setDate(now.getDate() - i);
+                filteredDates.push(formatDateKey(d));
+            }
+        } else if (period === '30days') {
+            for (let i = 29; i >= 0; i--) {
+                let d = new Date();
+                d.setDate(now.getDate() - i);
+                filteredDates.push(formatDateKey(d));
+            }
+        } else if (period === 'month') {
+            const monthVal = document.getElementById('stats-month-picker').value; // Formato "YYYY-MM"
+            if (monthVal) {
+                const [year, month] = monthVal.split('-').map(Number);
+                const daysInMonth = new Date(year, month, 0).getDate();
+                for (let day = 1; day <= daysInMonth; day++) {
+                    let d = new Date(year, month - 1, day);
+                    filteredDates.push(formatDateKey(d));
+                }
+            }
+        } else if (period === 'all') {
+            filteredDates = Object.keys(data).sort();
+        }
+
+        // 2. Procesar Datos para Gráficos y Resumen
         let activityTotals = {};
-        let hasData = false;
-        for (let date in data) {
-            for (let act in data[date]) {
-                if (!activityTotals[act]) activityTotals[act] = 0;
-                activityTotals[act] += data[date][act];
-                hasData = true;
+        let dailyTotals = {};
+        let totalMsOverall = 0;
+        let activeDaysCount = 0;
+
+        filteredDates.forEach(dateKey => {
+            let dayTotal = 0;
+            if (data[dateKey]) {
+                for (let act in data[dateKey]) {
+                    const dur = data[dateKey][act];
+                    activityTotals[act] = (activityTotals[act] || 0) + dur;
+                    dayTotal += dur;
+                }
+            }
+            dailyTotals[dateKey] = dayTotal;
+            totalMsOverall += dayTotal;
+            if (dayTotal > 0) activeDaysCount++;
+        });
+
+        // Actualizar Tarjetas de Resumen
+        const totalHours = (totalMsOverall / 3600000).toFixed(1);
+        document.getElementById('stat-total-time').innerText = `${totalHours}h`;
+
+        const daysDivider = filteredDates.length || 1;
+        const avgHours = (totalMsOverall / 3600000 / daysDivider).toFixed(1);
+        document.getElementById('stat-avg-time').innerText = `${avgHours}h`;
+
+        let topAct = '-';
+        let maxActMs = 0;
+        for (let act in activityTotals) {
+            if (activityTotals[act] > maxActMs) {
+                maxActMs = activityTotals[act];
+                topAct = act;
             }
         }
-        
+        document.getElementById('stat-top-activity').innerText = topAct;
+
+        // --- DOUGHNUT CHART (Reparto por actividad) ---
         let pieLabels = Object.keys(activityTotals);
-        let pieData = Object.values(activityTotals).map(ms => ms / 3600000); // Convertir a horas
+        let pieData = Object.values(activityTotals).map(ms => ms / 3600000);
 
-        // Colores bonitos para las gráficas
-        const colors = ['#0866ff', '#00a400', '#f5c33b', '#e41e3f', '#8a2be2', '#ff8c00', '#00ced1', '#ff1493'];
-
+        const colors = ['#0866ff', '#00a400', '#f5c33b', '#e41e3f', '#8a2be2', '#ff8c00', '#00ced1', '#ff1493', '#795548', '#607d8b'];
         const pieCtx = document.getElementById('pieChart').getContext('2d');
         if (pieChartInstance) pieChartInstance.destroy();
-        
-        if (!hasData) {
-            // Si no hay datos, mostramos un gráfico gris vacío
+
+        if (pieData.length === 0 || pieData.every(v => v === 0)) {
             pieChartInstance = new Chart(pieCtx, {
                 type: 'pie',
                 data: { labels: ['Sin datos'], datasets: [{ data: [1], backgroundColor: ['#e4e6eb'] }] }
@@ -327,34 +523,23 @@
                     datasets: [{ data: pieData, backgroundColor: colors, borderWidth: 0 }]
                 },
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
                     plugins: { tooltip: { callbacks: { label: function(c) { return ' ' + c.label + ': ' + formatTooltip(c); } } } }
                 }
             });
         }
 
-        // 2. Preparar datos para el gráfico de barras (Últimos 7 días)
-        let barLabels = [];
-        let barData = [];
-        
-        for (let i = 6; i >= 0; i--) {
-            let d = new Date();
-            d.setDate(d.getDate() - i);
-            let dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            let displayDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-            
-            barLabels.push(displayDate);
-            
-            let dayTotalMs = 0;
-            if (data[dateKey]) {
-                for (let act in data[dateKey]) {
-                    dayTotalMs += data[dateKey][act];
-                }
-            }
-            barData.push(dayTotalMs / 3600000); // Convertir a horas
-        }
+        // --- BAR CHART (Evolución diaria) ---
+        let barLabels = filteredDates.map(dateStr => {
+            const parts = dateStr.split('-');
+            return `${parts[2]}/${parts[1]}`;
+        });
+        let barData = filteredDates.map(dateStr => (dailyTotals[dateStr] || 0) / 3600000);
 
         const barCtx = document.getElementById('barChart').getContext('2d');
         if (barChartInstance) barChartInstance.destroy();
+        
         barChartInstance = new Chart(barCtx, {
             type: 'bar',
             data: {
@@ -363,11 +548,16 @@
                     label: 'Horas Totales',
                     data: barData,
                     backgroundColor: '#0866ff',
-                    borderRadius: 6
+                    borderRadius: 4
                 }]
             },
             options: {
-                scales: { y: { beginAtZero: true, title: { display: false } } },
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { beginAtZero: true },
+                    x: { ticks: { autoSkip: true, maxTicksLimit: 12, font: { size: 10 } } }
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: { callbacks: { label: function(c) { return ' ' + formatTooltip(c); } } }
@@ -376,9 +566,9 @@
         });
     }
 
-    // Inicializar al cargar
-    updateHistory();
-    updateDatalist();
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
 </script>
 </body>
 </html>
